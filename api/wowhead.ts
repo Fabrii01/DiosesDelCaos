@@ -18,7 +18,7 @@ export default async function handler(
     const response = await fetch(url);
 
     if (!response.ok) {
-      console.error("Wowhead respondió:", response.status);
+      console.error("Respuesta de Wowhead:", response.status);
       return res.status(502).json({
         error: "Wowhead no pudo completar la búsqueda.",
         upstreamStatus: response.status,
@@ -29,15 +29,15 @@ export default async function handler(
 
     if (!Array.isArray(data) || !Array.isArray(data[1])) {
       return res.status(502).json({
-        error: "Wowhead devolvió un formato inesperado.",
+        error: "Formato inesperado de Wowhead.",
       });
     }
 
-    return res.status(200).json({
-      results: data[1]
-        .filter((name: unknown): name is string => typeof name === "string")
-        .map((name: string) => ({ name })),
-    });
+    const results = data[1]
+      .filter((name: unknown): name is string => typeof name === "string")
+      .map((name: string) => ({ name }));
+
+    return res.status(200).json({ results });
   } catch (error) {
     console.error("Error consultando Wowhead:", error);
     return res.status(502).json({

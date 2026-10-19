@@ -1,3 +1,4 @@
+
 export type ObjetoWowhead = {
   id: number;
   nombre: string;
@@ -5,61 +6,44 @@ export type ObjetoWowhead = {
   calidad: number;
 };
 
-type ItemWowheadAPI = {
-  id: number;
-  name: string;
-  icon?: string;
-  quality?: number;
-};
+const ICONO_POR_DEFECTO =
+  "https://wow.zamimg.com/images/wow/icons/large/inv_misc_questionmark.jpg";
 
 export async function buscarObjetosWowhead(
-  busqueda: string
+  busqueda: string,
 ): Promise<ObjetoWowhead[]> {
   const termino = busqueda.trim();
 
-  if (termino.length < 2) {
-    return [];
-  }
+  if (termino.length < 2) return [];
 
   try {
-    // ¡Asegúrate de incluir https:// al inicio para que el navegador no lo busque en Vercel!
-    const url = `https://nether.wowhead.com/tooltip/search?q=${encodeURIComponent(termino)}`;
+    const url =
+      `https://www.wowhead.com/search/suggestions-open-search?q=${encodeURIComponent(termino)}`;
 
     const respuesta = await fetch(url);
 
     if (!respuesta.ok) {
-      throw new Error("No se pudo consultar la API de objetos.");
+      throw new Error(`Wowhead respondió ${respuesta.status}`);
     }
 
-    const datos = await respuesta.json();
-    
-    const listaItems: ItemWowheadAPI[] = datos.results || datos.items || (Array.isArray(datos) ? datos : []);
+    const datos: unknown = await respuesta.json();
 
-    return listaItems
-      .filter((item) => item.id && item.name)
-      .map((item) => ({
-        id: item.id,
-        nombre: item.name,
-        icono: item.icon
-          ? `https://wow.zamimg.com/images/wow/icons/large/${item.icon}.jpg`
-          : "https://wow.zamimg.com/images/wow/icons/large/inv_misc_questionmark.jpg",
-        calidad: item.quality ?? 2,
-      }));
+    if (!Array.isArray(datos) || !Array.isArray(datos[1])) {
+      throw new Error("Formato de sugerencias inesperado");
+    }
+
+    const nombres = (datos[1] as unknown[])
+      .filter((nombre): nombre is string => typeof nombre === "string")
+      .slice(0, 10);
+
+    // Las sugerencias solo contienen nombres, no IDs ni iconos.
+    // No inventamos esos datos ni devolvemos resultados incompletos.
+    console.info("Sugerencias de Wowhead:", nombres);
+
+    return [];
   } catch (error) {
-    console.warn("Fallback de búsqueda:", error);
-    
-    // Si por algo falla, permite buscar o registrar escribiendo el ID numérico exacto
-    if (/^\d+$/.test(termino)) {
-      const idNum = parseInt(termino, 10);
-      return [
-        {
-          id: idNum,
-          nombre: `Objeto #${idNum}`,
-          icono: "https://wow.zamimg.com/images/wow/icons/large/inv_misc_questionmark.jpg",
-          calidad: 3,
-        },
-      ];
-    }
+    console.error("Error al buscar en Wowhead:", error);
+
     return [];
   }
 }

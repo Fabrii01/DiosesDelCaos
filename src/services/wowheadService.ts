@@ -27,9 +27,7 @@ export async function buscarObjetosWowhead(
     return [];
   }
 
-  const wowheadUrl = `https://www.wowhead.com/tbc/search?q=${encodeURIComponent(termino)}&energeon=true`;
-  // Usamos un proxy público de CORS para evitar el bloqueo del navegador
-  const url = `https://corsproxy.io/?${encodeURIComponent(wowheadUrl)}`;
+  const url = `/api/wowhead?q=${encodeURIComponent(termino)}`;
 
   const respuesta = await fetch(url);
 
@@ -51,9 +49,7 @@ export async function buscarObjetosWowhead(
     .map((resultado) => ({
       id: resultado.id,
       nombre: resultado.name,
-      icono:
-        `https://wow.zamimg.com/images/wow/icons/large/` +
-        `${resultado.icon}.jpg`,
+      icono: `https://wow.zamimg.com/images/wow/icons/large/${resultado.icon}.jpg`,
       calidad: resultado.quality ?? 0,
     }));
 }

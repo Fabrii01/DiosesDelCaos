@@ -27,8 +27,9 @@ export async function buscarObjetosWowhead(
     return [];
   }
 
-  // Apuntamos directamente al buscador público de JSON de Wowhead
-  const url = `https://www.wowhead.com/tbc/search?q=${encodeURIComponent(termino)}&energeon=true`;
+  const wowheadUrl = `https://www.wowhead.com/tbc/search?q=${encodeURIComponent(termino)}&energeon=true`;
+  // Usamos un proxy público de CORS para evitar el bloqueo del navegador
+  const url = `https://corsproxy.io/?${encodeURIComponent(wowheadUrl)}`;
 
   const respuesta = await fetch(url);
 

@@ -1,4 +1,3 @@
-
 export type ObjetoWowhead = {
   id: number;
   nombre: string;
@@ -28,8 +27,8 @@ export async function buscarObjetosWowhead(
     return [];
   }
 
-  const url =
-  "/api/wowhead?q=" + encodeURIComponent(termino);
+  // Apuntamos directamente al buscador público de JSON de Wowhead
+  const url = `https://www.wowhead.com/tbc/search?q=${encodeURIComponent(termino)}&energeon=true`;
 
   const respuesta = await fetch(url);
 

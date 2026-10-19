@@ -1,45 +1,80 @@
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
+type ResultadoWowhead = {
+  type?: number;
+  id?: number;
+  name?: string;
+  typeName?: string;
+  icon?: string;
+  quality?: number;
+};
+
+type RespuestaWowhead = {
+  results?: ResultadoWowhead[];
+};
+
 export default async function handler(
   req: VercelRequest,
   res: VercelResponse,
 ) {
-  const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
+  const q =
+    typeof req.query.q === "string" ? req.query.q.trim() : "";
 
   if (q.length < 2) {
-    return res.status(400).json({ error: "Escribe al menos 2 caracteres." });
+    return res.status(400).json({
+      error: "Escribe al menos 2 caracteres.",
+    });
   }
 
   try {
     const url =
-      `https://www.wowhead.com/search/suggestions-open-search?q=${encodeURIComponent(q)}`;
+      `https://www.wowhead.com/search/suggestions-template?q=${encodeURIComponent(q)}`;
 
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "Mozilla/5.0",
+      },
+    });
 
     if (!response.ok) {
-      console.error("Respuesta de Wowhead:", response.status);
+      console.error("Wowhead respondió:", response.status);
+
       return res.status(502).json({
         error: "Wowhead no pudo completar la búsqueda.",
         upstreamStatus: response.status,
       });
     }
 
-    const data: unknown = await response.json();
+    const data = (await response.json()) as RespuestaWowhead;
 
-    if (!Array.isArray(data) || !Array.isArray(data[1])) {
-      return res.status(502).json({
-        error: "Formato inesperado de Wowhead.",
-      });
-    }
+    const results = (data.results ?? [])
+      .filter(
+        (item) =>
+          item.type === 3 &&
+          item.typeName === "Item" &&
+          typeof item.id === "number" &&
+          item.id > 0 &&
+          typeof item.name === "string" &&
+          Boolean(item.icon),
+      )
+      .map((item) => ({
+        type: item.type,
+        typeName: item.typeName,
+        id: item.id!,
+        name: item.name!,
+        icon: item.icon!,
+        quality: item.quality ?? 0,
+      }));
 
-    const results = data[1]
-      .filter((name: unknown): name is string => typeof name === "string")
-      .map((name: string) => ({ name }));
-
-    return res.status(200).json({ results });
+    return res.status(200).json({
+      search: q,
+      results,
+    });
   } catch (error) {
     console.error("Error consultando Wowhead:", error);
+
     return res.status(502).json({
       error: "No se pudo consultar Wowhead.",
     });

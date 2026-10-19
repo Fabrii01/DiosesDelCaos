@@ -5,21 +5,15 @@ export type ObjetoWowhead = {
   calidad: number;
 };
 
-type ResultadoWowhead = {
-  type: number;
+type ItemWowheadAPI = {
   id: number;
   name: string;
-  typeName: string;
   icon?: string;
   quality?: number;
 };
 
-type RespuestaWowhead = {
-  results?: ResultadoWowhead[];
-};
-
 export async function buscarObjetosWowhead(
-  busqueda: string,
+  busqueda: string
 ): Promise<ObjetoWowhead[]> {
   const termino = busqueda.trim();
 
@@ -27,29 +21,46 @@ export async function buscarObjetosWowhead(
     return [];
   }
 
-  const url = `/api/wowhead?q=${encodeURIComponent(termino)}`;
+  try {
+    // Consultamos la API pública de datos de Wowhead directamente desde el navegador
+    const url = `https://nether.wowhead.com/tooltip/search?q=${encodeURIComponent(termino)}`;
 
-  const respuesta = await fetch(url);
+    const respuesta = await fetch(url);
 
-  if (!respuesta.ok) {
-    throw new Error("No se pudo consultar Wowhead.");
+    if (!respuesta.ok) {
+      throw new Error("No se pudo consultar la API de objetos.");
+    }
+
+    const datos = await respuesta.json();
+    
+    // Obtenemos los resultados devueltos por Wowhead
+    const listaItems: ItemWowheadAPI[] = datos.results || datos.items || (Array.isArray(datos) ? datos : []);
+
+    return listaItems
+      .filter((item) => item.id && item.name)
+      .map((item) => ({
+        id: item.id,
+        nombre: item.name,
+        icono: item.icon
+          ? `https://wow.zamimg.com/images/wow/icons/large/${item.icon}.jpg`
+          : "https://wow.zamimg.com/images/wow/icons/large/inv_misc_questionmark.jpg",
+        calidad: item.quality ?? 2,
+      }));
+  } catch (error) {
+    console.warn("Fallback de búsqueda:", error);
+    
+    // Si el usuario escribe un ID numérico directo (ej: 32837), permite registrarlo al instante
+    if (/^\d+$/.test(termino)) {
+      const idNum = parseInt(termino, 10);
+      return [
+        {
+          id: idNum,
+          nombre: `Objeto #${idNum}`,
+          icono: "https://wow.zamimg.com/images/wow/icons/large/inv_misc_questionmark.jpg",
+          calidad: 3,
+        },
+      ];
+    }
+    return [];
   }
-
-  const datos: RespuestaWowhead = await respuesta.json();
-
-  return (datos.results ?? [])
-    .filter(
-      (resultado) =>
-        resultado.typeName === "Item" &&
-        resultado.type === 3 &&
-        resultado.id > 0 &&
-        Boolean(resultado.name) &&
-        Boolean(resultado.icon),
-    )
-    .map((resultado) => ({
-      id: resultado.id,
-      nombre: resultado.name,
-      icono: `https://wow.zamimg.com/images/wow/icons/large/${resultado.icon}.jpg`,
-      calidad: resultado.quality ?? 0,
-    }));
 }

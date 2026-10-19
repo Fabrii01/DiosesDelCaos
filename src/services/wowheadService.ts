@@ -22,7 +22,7 @@ export async function buscarObjetosWowhead(
   }
 
   try {
-    // Consultamos la API pública de datos de Wowhead directamente desde el navegador
+    // ¡Asegúrate de incluir https:// al inicio para que el navegador no lo busque en Vercel!
     const url = `https://nether.wowhead.com/tooltip/search?q=${encodeURIComponent(termino)}`;
 
     const respuesta = await fetch(url);
@@ -33,7 +33,6 @@ export async function buscarObjetosWowhead(
 
     const datos = await respuesta.json();
     
-    // Obtenemos los resultados devueltos por Wowhead
     const listaItems: ItemWowheadAPI[] = datos.results || datos.items || (Array.isArray(datos) ? datos : []);
 
     return listaItems
@@ -49,7 +48,7 @@ export async function buscarObjetosWowhead(
   } catch (error) {
     console.warn("Fallback de búsqueda:", error);
     
-    // Si el usuario escribe un ID numérico directo (ej: 32837), permite registrarlo al instante
+    // Si por algo falla, permite buscar o registrar escribiendo el ID numérico exacto
     if (/^\d+$/.test(termino)) {
       const idNum = parseInt(termino, 10);
       return [
